@@ -12,11 +12,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Clear loading message
       activitiesList.innerHTML = "";
+      // Reset activity select to default option to avoid duplicates
+      activitySelect.innerHTML = '<option value="">-- Select an activity --</option>';
 
       // Populate activities list
       Object.entries(activities).forEach(([name, details]) => {
         const activityCard = document.createElement("div");
         activityCard.className = "activity-card";
+        activityCard.dataset.activityName = name;
 
         const spotsLeft = details.max_participants - details.participants.length;
 
@@ -53,8 +56,52 @@ document.addEventListener("DOMContentLoaded", () => {
             emailSpan.className = "participant-email";
             emailSpan.textContent = participant;
 
+            const removeBtn = document.createElement("button");
+            removeBtn.className = "participant-remove";
+            removeBtn.title = "Unregister";
+            removeBtn.type = "button";
+            removeBtn.textContent = "✖";
+
+            removeBtn.addEventListener("click", async (e) => {
+              e.preventDefault();
+              try {
+                const response = await fetch(
+                  `/activities/${encodeURIComponent(name)}/unregister?email=${encodeURIComponent(participant)}`,
+                  { method: "POST" }
+                );
+                const result = await response.json();
+                if (response.ok) {
+                  // Remove participant from DOM
+                  li.remove();
+                  // If no participant-item remains, show placeholder
+                  if (!participantsList.querySelectorAll('.participant-item').length) {
+                    const noLi = document.createElement('li');
+                    noLi.className = 'no-participants';
+                    noLi.textContent = 'No participants yet.';
+                    participantsList.appendChild(noLi);
+                  }
+                  // Update availability text
+                  const avail = activityCard.querySelector('.activity-availability');
+                  if (avail) {
+                    const m = avail.textContent.match(/(\d+) spots left/);
+                    if (m) {
+                      const num = parseInt(m[1], 10) + 1;
+                      avail.innerHTML = `<strong>Availability:</strong> ${num} spots left`;
+                    }
+                  }
+                } else {
+                  console.error('Unregister failed', result);
+                  alert(result.detail || 'Failed to unregister participant');
+                }
+              } catch (error) {
+                console.error('Error unregistering:', error);
+                alert('Failed to unregister participant.');
+              }
+            });
+
             li.appendChild(avatar);
             li.appendChild(emailSpan);
+            li.appendChild(removeBtn);
             participantsList.appendChild(li);
           });
         } else {
@@ -96,6 +143,8 @@ document.addEventListener("DOMContentLoaded", () => {
       if (response.ok) {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
+        // Refresh the activities to show the new participant and updated availability
+        await fetchActivities();
         signupForm.reset();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";

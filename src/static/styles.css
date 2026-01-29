@@ -114,6 +114,21 @@ section h3 {
   padding: 6px 0;
 }
 
+/* Remove button next to participant */
+.participant-remove {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: #c62828;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+.participant-remove:hover {
+  background: rgba(198,40,40,0.08);
+}
+
 .form-group {
   margin-bottom: 15px;
 }
